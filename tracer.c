@@ -5,6 +5,8 @@
 #include <sys/user.h>
 #include <sys/wait.h>
 #include <sys/types.h>
+#include <unistd.h>
+#include <fcntl.h>
 #include "utils.h"
 
 int main(int argc, char *args[]) {    
@@ -17,8 +19,15 @@ int main(int argc, char *args[]) {
         if(pid == 0) {
             // Child process
             ptrace(PTRACE_TRACEME, 0, 0, 0);
+
+            // Redirect stdout and stderr to /dev/null
+            int devnull = open("/dev/null", O_WRONLY);
+            dup2(devnull, 1);
+            dup2(devnull, 2);
+            close(devnull);
+
             // Executes tracee without any argument
-            execl(ptargs->file, "");
+            execl(ptargs->file, "", NULL);
         } else {
             // Parent process
             // Waits for kernell notification
@@ -35,8 +44,8 @@ int main(int argc, char *args[]) {
                         // Peeks regs
                         struct user_regs_struct regs;
                         ptrace(PTRACE_GETREGS, pid, NULL, &regs);
-                        long word0 = ptrace(PTRACE_PEEKDATA, pid, regs.rip, NULL);
-                        long word1 = ptrace(PTRACE_PEEKDATA, pid, regs.rip + sizeof(long), NULL);
+                        long word0 = ptrace(PTRACE_PEEKDATA, pid, regs.eip, NULL);
+                        long word1 = ptrace(PTRACE_PEEKDATA, pid, regs.eip + sizeof(long), NULL);
 
                         // Prints rip content
                         logger(DEBUG, "0x%.16lx 0x%.16lx", word0, word1);
@@ -52,7 +61,17 @@ int main(int argc, char *args[]) {
                 }
 
                 case SYSCALL: {
-                    logger(INFO, "I do nothing, stop bully me! >_<");
+                    struct user_regs_struct regs;
+                    while(wait_val == 1407) {
+                        ptrace(PTRACE_SYSCALL, pid, NULL, NULL);
+                        wait(&wait_val);
+                        
+                        ptrace(PTRACE_GETREGS, pid, NULL, &regs);
+                        logger(DEBUG, "Syscall code: %ld", regs.orig_eax);
+                        
+                        ptrace(PTRACE_SYSCALL, pid, NULL, NULL);
+                        wait(&wait_val);
+                    }
                 }
             } 
         }
