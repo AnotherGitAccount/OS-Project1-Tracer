@@ -10,8 +10,8 @@
 size_t load_syscalls(const char *filename, char ***result);
 
 /*
- * @brief Frees all system calls previously allocated
- * @param syscalls  Pointer to the rray containing the system
+ * @brief Frees all system calls names previously allocated
+ * @param syscalls  Pointer to the array containing the system
  *                  calls names
  * @param size      The size of the array
  */
