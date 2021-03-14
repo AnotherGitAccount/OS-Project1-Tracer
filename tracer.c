@@ -8,6 +8,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include "utils.h"
+#include "file.h"
 
 int main(int argc, char *args[]) {    
     ptargs_t *ptargs = parse_input(argc, args);
@@ -61,17 +62,25 @@ int main(int argc, char *args[]) {
                 }
 
                 case SYSCALL: {
+                    char **syscalls;
+                    size_t nb_syscalls = load_syscalls("syscall.txt", &syscalls);
+                    if(nb_syscalls == -1) {
+                        printf("An error occured while loading the list of system calls\n");
+                        exit(-1);
+                    }
+
                     struct user_regs_struct regs;
                     while(wait_val == 1407) {
                         ptrace(PTRACE_SYSCALL, pid, NULL, NULL);
                         wait(&wait_val);
                         
                         ptrace(PTRACE_GETREGS, pid, NULL, &regs);
-                        logger(DEBUG, "Syscall code: %ld", regs.orig_eax);
+                        logger(INFO, "Syscall: %s (%ld)", syscalls[regs.orig_eax], regs.orig_eax);
                         
                         ptrace(PTRACE_SYSCALL, pid, NULL, NULL);
                         wait(&wait_val);
                     }
+                    free_syscalls(&syscalls, nb_syscalls);
                 }
             } 
         }
