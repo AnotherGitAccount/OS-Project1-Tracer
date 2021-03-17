@@ -9,6 +9,7 @@
 #include <fcntl.h>
 #include "utils.h"
 #include "file.h"
+#include "instruction.h"
 
 int main(int argc, char *args[]) {    
     ptargs_t *ptargs = parse_input(argc, args);
@@ -48,8 +49,13 @@ int main(int argc, char *args[]) {
                         long word0 = ptrace(PTRACE_PEEKDATA, pid, regs.eip, NULL);
                         long word1 = ptrace(PTRACE_PEEKDATA, pid, regs.eip + sizeof(long), NULL);
 
-                        // Prints rip content
-                        logger(DEBUG, "0x%.16lx 0x%.16lx", word0, word1);
+                        // Verifies if it's a call
+                        long op = parse_instruction(word0, word1);
+                        
+                        // Checks if the opcode corresponds to a call
+                        if(op == 0xe8 || op == 0xff || op == 0x9a) {
+                            logger(DEBUG, "CALL 0x%.2lx", op);
+                        }
 
                         // Goes to next instruction
                         if(ptrace(PTRACE_SINGLESTEP, pid, 0, 0) != 0)
