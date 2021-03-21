@@ -41,7 +41,6 @@ int main(int argc, char *args[]) {
             switch(ptargs->mode) {
                 case PROFILER: {
                     Mem_map* map = load_map(pid);
-                    int show_next = 0;
                     unsigned int op_count = 0;
 
                     while(wait_val == 1407) {
@@ -57,19 +56,30 @@ int main(int argc, char *args[]) {
 
                         // Verifies if it's a call
                         Instruction* instruction = parse_instruction(word0, word1);
-
-                        if(show_next != 0) {
-                            logger(DEBUG, "\tReal TO: 0x%.8lx", regs.eip - offset);
-                            show_next--;
-                        }
                         
                         // Checks if the opcode corresponds to a call
                         if(instruction->type == CALL) {
-                            show_next = 1;
                             logger(DEBUG, "FROM: 0x%.8lx contains 0x%.8lx 0x%.8lx", regs.eip - offset, word0, word1);
                             logger(DEBUG, "\tCall offset: 0x%.8lx", instruction->offset);
-                            logger(DEBUG, "\tPredicted TO: 0x%.8lx", regs.eip - offset + instruction->offset);
-                            logger(DEBUG, "\tPredicted TO + 5: 0x%.8lx", regs.eip - offset + instruction->offset + 0x00000005);
+                            logger(DEBUG, "\tTO: 0x%.8lx", regs.eip - offset + instruction->offset);
+                            logger(DEBUG, "\tTO + 5: 0x%.8lx", regs.eip - offset + instruction->offset + 0x00000005);
+
+                            char buffer[100];
+                            // Gets the first column of the memory mappings of process pid
+                            sprintf(buffer, "grep \"%.8lx\" nm_res | awk '{ print $3 }'", regs.eip + instruction->offset + 0x00000005);
+                            
+                            FILE *pipe = popen(buffer, "r");
+                            if(!pipe) 
+                                return -1;
+
+                            strcpy(buffer, "Not found\n");
+
+                            while(!feof(pipe)) {
+                                fgets(buffer, 100, pipe);
+                            }
+                            pclose(pipe);
+                            
+                            logger(DEBUG, "\tCalled: %s", buffer);
                         }
 
                         free(instruction);
