@@ -1,36 +1,45 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <stdio.h>
+#include <stdint.h>
 #include "instruction.h"
 
-long parse_instruction(long word0, long word1) {
-    // The opcode is the byte after the first occurence of byte 0x0F
-    int index = -1;
+Instruction* parse_instruction(long word0, long word1) {
+    uint8_t bytes[8];
 
-    // The prefix must be in the 5 first bytes
-    while(index < 4) {
-        ++index;
-        
-        long word   = index < (int)sizeof(long) ? word0 : word1;
-        long offset = sizeof(long) - index % sizeof(long) - 1;
-        long byte   = (word >> 8 * offset) & 0xff;
+    for(int i = 0; i < 4; ++i) {
+        bytes[i]     = (int8_t)((word0 >> (8 * i)) & 0xff);
+        bytes[4 + i] = (int8_t)((word1 >> (8 * i)) & 0xff); 
+    }
 
-        // printf("%.2lx ", byte);
+    for(int i = 0; i < 8; ++i) {
+        uint8_t byte = bytes[i];
 
         if(!is_prefix(byte)) {
-            // The opcode of CALL is 0x0F9A
-            int  op_index  = index + 1;
-            long op_word   = op_index < (int)sizeof(long) ? word0 : word1;
-            long op_offset = sizeof(long) - op_index % sizeof(long) - 1;
-            long op_byte   = (op_word >> 8 * op_offset) & 0xff;
- 
-            // printf("op!\n");
-            return op_byte;
+            Instruction* instruction = malloc(sizeof(Instruction));
+            instruction->offset = 0;
+
+            switch(byte) {
+                case 0xe8: {
+                    instruction->type = CALL;
+                    
+                    for(int j = 1; j < 5; ++j) {
+                        byte   = bytes[i + 5 - j];
+                        instruction->offset = (instruction->offset << 8) | (long)byte;
+                    }
+                    break;
+                }
+                default: {
+                    instruction->type = NO_CALL;
+                    break;
+                }
+            }
+
+            return instruction;
         }
     }
 
-    // printf("\n");
-    return -1;
+    return NULL;
 }
 
 bool is_prefix(long byte) {

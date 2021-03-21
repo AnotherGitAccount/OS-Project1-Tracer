@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 #include <sys/ptrace.h>
 #include <unistd.h>
 #include <sys/user.h>
@@ -10,6 +11,7 @@
 #include "utils.h"
 #include "file.h"
 #include "instruction.h"
+#include "mem_map.h"
 
 int main(int argc, char *args[]) {    
     ptargs_t *ptargs = parse_input(argc, args);
@@ -38,6 +40,8 @@ int main(int argc, char *args[]) {
 
             switch(ptargs->mode) {
                 case PROFILER: {
+                    Mem_map* map = load_map(pid);
+                    int show_next = 0;
                     unsigned int op_count = 0;
 
                     while(wait_val == 1407) {
@@ -46,24 +50,38 @@ int main(int argc, char *args[]) {
                         // Peeks regs
                         struct user_regs_struct regs;
                         ptrace(PTRACE_GETREGS, pid, NULL, &regs);
+
+                        long offset = get_offset(map, regs.eip);
                         long word0 = ptrace(PTRACE_PEEKDATA, pid, regs.eip, NULL);
                         long word1 = ptrace(PTRACE_PEEKDATA, pid, regs.eip + sizeof(long), NULL);
 
                         // Verifies if it's a call
-                        long op = parse_instruction(word0, word1);
+                        Instruction* instruction = parse_instruction(word0, word1);
+
+                        if(show_next != 0) {
+                            logger(DEBUG, "\tReal TO: 0x%.8lx", regs.eip - offset);
+                            show_next--;
+                        }
                         
                         // Checks if the opcode corresponds to a call
-                        if(op == 0xe8 || op == 0xff || op == 0x9a) {
-                            logger(DEBUG, "CALL 0x%.2lx", op);
+                        if(instruction->type == CALL) {
+                            show_next = 1;
+                            logger(DEBUG, "FROM: 0x%.8lx contains 0x%.8lx 0x%.8lx", regs.eip - offset, word0, word1);
+                            logger(DEBUG, "\tCall offset: 0x%.8lx", instruction->offset);
+                            logger(DEBUG, "\tPredicted TO: 0x%.8lx", regs.eip - offset + instruction->offset);
+                            logger(DEBUG, "\tPredicted TO + 5: 0x%.8lx", regs.eip - offset + instruction->offset + 0x00000005);
                         }
+
+                        free(instruction);
 
                         // Goes to next instruction
                         if(ptrace(PTRACE_SINGLESTEP, pid, 0, 0) != 0)
-                            logger(ERR, "Ptrace falure.");
+                            logger(ERR, "Ptrace failure.");
                         wait(&wait_val);
                     }
 
                     logger(INFO, "Profiling done, number of ops: %u", op_count);
+                    free_map(map); 
                     break;
                 }
 
