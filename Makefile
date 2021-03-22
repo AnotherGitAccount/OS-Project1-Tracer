@@ -3,17 +3,31 @@ CFLAGS=-g --pedantic -Wall -Wextra -Wmissing-prototypes -std=c99
 PROGRAM=tracer 
 # DO NOT MODIFY CC, CFLAGS and PROGRAM
 # COMPLETE BELOW
-DEPENDENCIES=file.h instruction.h mem_map.h utils.h function_block.h
-OBJECTS=tracer.o file.o instruction.o mem_map.o utils.o function_block.o
+SRC_DIR	:= ./src
+INC_DIR := ./src/include
+OBJ_DIR	:= ./src/obj
+BIN_DIR	:= .
 
-%.o: %.c$(DEPENDENCIES)
-	$(CC) -c -o $@ $< $(CFLAGS)
+EXE	:= $(BIN_DIR)/$(PROGRAM)
+SRC	:= $(wildcard $(SRC_DIR)/*.c)
+OBJ	:= $(patsubst $(SRC_DIR)/%.c,$(OBJ_DIR)/%.o,$(SRC))
 
-$(PROGRAM): $(OBJECTS)
-	$(CC) -o $@ $^ $(CFLAGS)
-	$(MAKE) clean
+.PHONY: all clean
 
-.PHONY: cleanobj
+all: $(EXE)
+
+$(EXE): $(OBJ)
+	$(CC) $^ -o $@
+
+$(OBJ_DIR)/%.o: $(SRC_DIR)/%.c | $(OBJ_DIR)
+	$(CC) $(CFLAGS) -I $(INC_DIR) -c $< -o $@
+
+$(OBJ_DIR):
+	mkdir -p $@
 
 clean:
-	rm *.o
+	@$(RM) -rv $(BIN_DIR) $(OBJ_DIR)
+
+-include $(OBJ:.o=.d)
+
+

@@ -35,6 +35,7 @@ int main(int argc, char *args[]) {
         } else {
             // Parent process
             // Waits for kernell notification
+            struct user_regs_struct regs;
             int wait_val;
             wait(&wait_val);
 
@@ -46,8 +47,6 @@ int main(int argc, char *args[]) {
                     while(wait_val == 1407) {
                         ++op_count; 
 
-                        // Peeks regs
-                        struct user_regs_struct regs;
                         ptrace(PTRACE_GETREGS, pid, NULL, &regs);
 
                         long offset = get_offset(map, regs.eip);
@@ -97,13 +96,12 @@ int main(int argc, char *args[]) {
 
                 case SYSCALL: {
                     char **syscalls;
-                    size_t nb_syscalls = load_syscalls("syscall.txt", &syscalls);
+                    size_t nb_syscalls = load_syscalls("resources/syscall.txt", &syscalls);
                     if(nb_syscalls == -1) {
                         printf("An error occured while loading the list of system calls\n");
                         exit(-1);
                     }
 
-                    struct user_regs_struct regs;
                     while(wait_val == 1407) {
                         ptrace(PTRACE_SYSCALL, pid, NULL, NULL);
                         wait(&wait_val);
