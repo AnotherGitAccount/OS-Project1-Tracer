@@ -8,9 +8,9 @@ INC_DIR := ./src/include
 OBJ_DIR	:= ./src/obj
 BIN_DIR	:= .
 
-EXE	:= $(BIN_DIR)/$(PROGRAM)
-SRC	:= $(wildcard $(SRC_DIR)/*.c)
-OBJ	:= $(patsubst $(SRC_DIR)/%.c,$(OBJ_DIR)/%.o,$(SRC))
+EXE := $(BIN_DIR)/$(PROGRAM)
+SRC := $(wildcard $(SRC_DIR)/*.c)
+OBJ := $(patsubst $(SRC_DIR)/%.c,$(OBJ_DIR)/%.o,$(SRC))
 
 .PHONY: all clean
 
