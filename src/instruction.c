@@ -29,6 +29,10 @@ Instruction* parse_instruction(long word0, long word1) {
                     }
                     break;
                 }
+                case 0xc3: {
+                    instruction->type = RET;
+                    break;
+                }
                 default: {
                     instruction->type = NO_CALL;
                     break;

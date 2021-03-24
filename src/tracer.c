@@ -14,6 +14,7 @@
 #include "mem_map.h"
 
 int main(int argc, char *args[]) {    
+    bool show = false;
     ptargs_t *ptargs = parse_input(argc, args);
 
     if(ptargs != NULL) {
@@ -49,6 +50,11 @@ int main(int argc, char *args[]) {
 
                         ptrace(PTRACE_GETREGS, pid, NULL, &regs);
 
+                        if(show) {
+                            logger(DEBUG, "\tNEXT: 0x%.8lx\n", regs.eip);
+                            show = false;
+                        }
+
                         long offset = get_offset(map, regs.eip);
                         long word0 = ptrace(PTRACE_PEEKDATA, pid, regs.eip, NULL);
                         long word1 = ptrace(PTRACE_PEEKDATA, pid, regs.eip + sizeof(long), NULL);
@@ -58,10 +64,11 @@ int main(int argc, char *args[]) {
                         
                         // Checks if the opcode corresponds to a call
                         if(instruction->type == CALL) {
-                            logger(DEBUG, "FROM: 0x%.8lx contains 0x%.8lx 0x%.8lx", regs.eip - offset, word0, word1);
+                            show = true;
+                            logger(DEBUG, "FROM: 0x%.8lx contains 0x%.8lx 0x%.8lx", regs.eip, word0, word1);
                             logger(DEBUG, "\tCall offset: 0x%.8lx", instruction->offset);
-                            logger(DEBUG, "\tTO: 0x%.8lx", regs.eip - offset + instruction->offset);
-                            logger(DEBUG, "\tTO + 5: 0x%.8lx", regs.eip - offset + instruction->offset + 0x00000005);
+                            logger(DEBUG, "\tTO: 0x%.8lx", regs.eip + instruction->offset);
+                            logger(DEBUG, "\tTO + 5: 0x%.8lx", regs.eip + instruction->offset + 0x00000005);
 
                             char buffer[100];
                             // Gets the first column of the memory mappings of process pid
