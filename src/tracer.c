@@ -72,7 +72,7 @@ int main(int argc, char *args[]) {
 
                             char buffer[100];
                             // Gets the first column of the memory mappings of process pid
-                            sprintf(buffer, "nm tracee | grep \"%.8lx\" | awk '{ print $3 }'", regs.eip + instruction->offset + 0x00000005);
+                            sprintf(buffer, "nm %s | grep \"%.8lx\" | awk '{ print $3 }'", ptargs->file, regs.eip + instruction->offset + 0x00000005);
                             
                             FILE *pipe = popen(buffer, "r");
                             if(!pipe) 
