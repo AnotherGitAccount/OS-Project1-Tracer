@@ -11,10 +11,9 @@
 #include "utils.h"
 #include "file.h"
 #include "instruction.h"
-#include "mem_map.h"
+#include "stack.h"
 
 int main(int argc, char *args[]) {    
-    bool show = false;
     ptargs_t *ptargs = parse_input(argc, args);
 
     if(ptargs != NULL) {
@@ -42,62 +41,77 @@ int main(int argc, char *args[]) {
 
             switch(ptargs->mode) {
                 case PROFILER: {
-                    Mem_map* map = load_map(pid);
-                    unsigned int op_count = 0;
+                    func_block* tree;
+                    Stack* stack = create_stack();
+                    unsigned int cnt = 0;
+                    bool ret = false;
 
                     while(wait_val == 1407) {
-                        ++op_count; 
-
                         ptrace(PTRACE_GETREGS, pid, NULL, &regs);
-
-                        if(show) {
-                            logger(DEBUG, "\tNEXT: 0x%.8lx\n", regs.eip);
-                            show = false;
-                        }
-
-                        long offset = get_offset(map, regs.eip);
                         long word0 = ptrace(PTRACE_PEEKDATA, pid, regs.eip, NULL);
                         long word1 = ptrace(PTRACE_PEEKDATA, pid, regs.eip + sizeof(long), NULL);
 
-                        // Verifies if it's a call
-                        Instruction* instruction = parse_instruction(word0, word1);
-                        
-                        // Checks if the opcode corresponds to a call
-                        if(instruction->type == CALL) {
-                            show = true;
-                            logger(DEBUG, "FROM: 0x%.8lx contains 0x%.8lx 0x%.8lx", regs.eip, word0, word1);
-                            logger(DEBUG, "\tCall offset: 0x%.8lx", instruction->offset);
-                            logger(DEBUG, "\tTO: 0x%.8lx", regs.eip + instruction->offset);
-                            logger(DEBUG, "\tTO + 5: 0x%.8lx", regs.eip + instruction->offset + 0x00000005);
+                        Operation op = type_of(word0, word1);
 
-                            char buffer[100];
-                            // Gets the first column of the memory mappings of process pid
-                            sprintf(buffer, "nm %s | grep \"%.8lx\" | awk '{ print $3 }'", ptargs->file, regs.eip + instruction->offset + 0x00000005);
-                            
-                            FILE *pipe = popen(buffer, "r");
-                            if(!pipe) 
-                                return -1;
-
-                            strcpy(buffer, "Not found\n");
-
-                            while(!feof(pipe)) {
-                                fgets(buffer, 100, pipe);
-                            }
-                            pclose(pipe);
-                            
-                            logger(DEBUG, "\tCalled: %s", buffer);
+                        if(ret) {
+                            if(regs.eip == stack->head->ret_address) {
+                                // It is the return of our function
+                                func_block* block = pop(stack);
+                                add_instr(block, cnt);
+                                if(!is_empty(stack) && strcmp(block->name, stack->head->block->name) != 0) {
+                                    // Adds child count to parent if not recursive
+                                    add_instr(stack->head->block, block->nb_instructions);
+                                }
+                                cnt = 0;
+                            } 
+                            ret = false;
                         }
 
-                        free(instruction);
+                        ++cnt;
+                        switch(op) {
+                            case CALL: {
+                                long offset = offset_of_call(word0, word1);
+                                long ret_address = regs.eip + 5;
+                                char name[100];
+                                name_of(name, ptargs->file, ret_address + offset);
 
-                        // Goes to next instruction
+                                if(is_empty(stack)) {
+                                    // First call
+                                    tree = create_block(name);
+                                    push(stack, tree, ret_address);
+                                } else {
+                                    add_instr(stack->head->block, cnt);
+                                    if(strcmp(name, stack->head->block->name) == 0) {
+                                        // Recursive call
+                                        add_recursive(stack->head->block, 1);
+                                        push(stack, stack->head->block, ret_address);
+                                    } else {
+                                        // Non recursive call
+                                        func_block *block = create_block(name);
+                                        add_child(stack->head->block, block);
+                                        push(stack, block, ret_address);
+                                    }
+                                }
+                                cnt = 0;
+                                break;
+                            }
+
+                            case RET: 
+                                ret = true;
+                                break;
+
+                            default: break;
+                        }
+
                         if(ptrace(PTRACE_SINGLESTEP, pid, 0, 0) != 0)
-                            logger(ERR, "Ptrace failure.");
+                            logger(ERR, "Ptrace failure");
                         wait(&wait_val);
                     }
 
-                    logger(INFO, "Profiling done, number of ops: %u", op_count);
-                    free_map(map); 
+                    print_block(tree);
+
+                    destroy_stack(stack, false);
+                    destroy_block(tree);
                     break;
                 }
 
@@ -120,6 +134,7 @@ int main(int argc, char *args[]) {
                         wait(&wait_val);
                     }
                     free_syscalls(&syscalls, nb_syscalls);
+                    break;
                 }
             } 
         }
