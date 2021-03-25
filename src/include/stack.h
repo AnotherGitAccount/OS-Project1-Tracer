@@ -9,6 +9,7 @@ struct node {
 };
 
 typedef struct {
+    unsigned int size;
     Node* head;
 } Stack;
 

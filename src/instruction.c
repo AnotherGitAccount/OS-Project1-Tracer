@@ -45,11 +45,9 @@ Operation type_of(long word0, long word1) {
         return UNKNOWN;
     switch(opcode) {
         case 0xe8: return CALL;
-        /*case 0xc2:
-        case 0xca:      // Other ret opcodes
-        case 0xcb:*/
+        case 0xc2: 
         case 0xc3: return RET;
-        default:   return NO_CALL;
+        default:   return OTHER;
     }
 }
 

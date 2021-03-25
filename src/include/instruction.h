@@ -1,7 +1,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-typedef enum {CALL, RET, NO_CALL, UNKNOWN} Operation;
+typedef enum {CALL, RET, OTHER, UNKNOWN} Operation;
 
 typedef struct {
     Operation type;

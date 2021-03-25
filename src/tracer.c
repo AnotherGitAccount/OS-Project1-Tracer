@@ -52,20 +52,18 @@ int main(int argc, char *args[]) {
                         long word1 = ptrace(PTRACE_PEEKDATA, pid, regs.eip + sizeof(long), NULL);
 
                         Operation op = type_of(word0, word1);
-
-                        if(ret) {
-                            if(regs.eip == stack->head->ret_address) {
-                                // It is the return of our function
-                                func_block* block = pop(stack);
-                                add_instr(block, cnt);
-                                if(!is_empty(stack) && strcmp(block->name, stack->head->block->name) != 0) {
-                                    // Adds child count to parent if not recursive
-                                    add_instr(stack->head->block, block->nb_instructions);
-                                }
-                                cnt = 0;
-                            } 
+                        
+                        if(ret && !is_empty(stack) && regs.eip == stack->head->ret_address) {
+                            // It is the return of our function
+                            func_block* block = pop(stack);
+                            add_instr(block, cnt);
+                            if(!is_empty(stack) && strcmp(block->name, stack->head->block->name) != 0) {
+                                // Adds child count to parent if not recursive
+                                add_instr(stack->head->block, block->nb_instructions);
+                            }
+                            cnt = 0;
                             ret = false;
-                        }
+                        } 
 
                         ++cnt;
                         switch(op) {
@@ -108,10 +106,24 @@ int main(int argc, char *args[]) {
                         wait(&wait_val);
                     }
 
+                    // Simulates returns for non returning calls (start and exit calls)
+                    // Don't know if it's necessary...
+                    while(!is_empty(stack)) {
+                        ++cnt; // return count
+                        func_block* block = pop(stack);
+                        add_instr(block, cnt);
+                        if(!is_empty(stack) && strcmp(block->name, stack->head->block->name) != 0) {
+                            // Adds child count to parent if not recursive
+                            add_instr(stack->head->block, block->nb_instructions);
+                        }
+                        cnt = 0;
+                    }
+
                     print_block(tree);
 
                     destroy_stack(stack, false);
                     destroy_block(tree);
+
                     break;
                 }
 
