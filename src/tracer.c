@@ -140,7 +140,7 @@ int main(int argc, char *args[]) {
                         wait(&wait_val);
                         
                         ptrace(PTRACE_GETREGS, pid, NULL, &regs);
-                        logger(INFO, "Syscall: %s (%ld)", syscalls[regs.orig_eax], regs.orig_eax);
+                        printf("syscall: %s\n", syscalls[regs.orig_eax]);
                         
                         ptrace(PTRACE_SYSCALL, pid, NULL, NULL);
                         wait(&wait_val);
