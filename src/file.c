@@ -24,7 +24,7 @@ size_t load_syscalls(const char *filename, char ***result) {
     fseek(f, 0, SEEK_SET);
     while(i < nb_lines) {
         fscanf(f, "%*d %s", buffer); 
-        (*result)[i] = malloc(strlen(buffer) * sizeof(char));
+        (*result)[i] = malloc(strlen(buffer) * sizeof(char) + 1);
         strcpy((*result)[i], buffer);
         ++i;
     }
