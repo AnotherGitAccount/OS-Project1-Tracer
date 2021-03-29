@@ -68,9 +68,10 @@ int index_of_instruction(long word0, long word1) {
     for(int i = 0; i < 8; ++i) {
         long byte = bytes[i];
 
-        if(!is_prefix(byte))
+        if(!is_prefix(byte)) {
             free(bytes);
             return i;
+        }
     }
     free(bytes);
     return -1;
@@ -98,7 +99,7 @@ int name_of(char* name, char* elf_path, long address) {
 
         pclose(pipe);
     }
-    strcpy(name, "unknown");
+    strcpy(name, "*unknown*");
     return 1;
 }
 

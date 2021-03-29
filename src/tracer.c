@@ -73,24 +73,26 @@ int main(int argc, char *args[]) {
                                 char name[100];
                                 name_of(name, ptargs->file, ret_address + offset);
 
-                                if(is_empty(stack)) {
-                                    // First call
-                                    tree = create_block(name);
-                                    push(stack, tree, ret_address);
-                                } else {
-                                    add_instr(stack->head->block, cnt);
-                                    if(strcmp(name, stack->head->block->name) == 0) {
-                                        // Recursive call
-                                        add_recursive(stack->head->block, 1);
-                                        push(stack, stack->head->block, ret_address);
+                                if(strcmp(name, "*unknown*") != 0) {
+                                    if(is_empty(stack)) {
+                                        // First call
+                                        tree = create_block(name);
+                                        push(stack, tree, ret_address);
                                     } else {
-                                        // Non recursive call
-                                        func_block *block = create_block(name);
-                                        add_child(stack->head->block, block);
-                                        push(stack, block, ret_address);
+                                        add_instr(stack->head->block, cnt);
+                                        if(strcmp(name, stack->head->block->name) == 0) {
+                                            // Recursive call
+                                            add_recursive(stack->head->block, 1);
+                                            push(stack, stack->head->block, ret_address);
+                                        } else {
+                                            // Non recursive call
+                                            func_block *block = create_block(name);
+                                            add_child(stack->head->block, block);
+                                            push(stack, block, ret_address);
+                                        }
                                     }
+                                    cnt = 0;
                                 }
-                                cnt = 0;
                                 break;
                             }
 
@@ -107,9 +109,7 @@ int main(int argc, char *args[]) {
                     }
 
                     // Simulates returns for non returning calls (start and exit calls)
-                    // Don't know if it's necessary...
                     while(!is_empty(stack)) {
-                        ++cnt; // return count
                         func_block* block = pop(stack);
                         add_instr(block, cnt);
                         if(!is_empty(stack) && strcmp(block->name, stack->head->block->name) != 0) {

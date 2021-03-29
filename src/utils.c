@@ -50,10 +50,8 @@ ptargs_t* parse_input(int argc, char *args[]) {
 
         // Gets the mode
         if(strcmp(args[1], "-p") == 0) {
-            logger(INFO, "Profiler mode...");
             ptargs->mode = PROFILER;
         } else if(strcmp(args[1], "-s") == 0) {
-            logger(INFO, "Syscall mode...");
             ptargs->mode = SYSCALL;
         } else {
             free(ptargs);
