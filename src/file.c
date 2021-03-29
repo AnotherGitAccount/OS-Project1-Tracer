@@ -3,7 +3,7 @@
 #include <string.h>
 #include "file.h"
 
-size_t load_syscalls(const char *filename, char ***result) {
+int load_syscalls(const char *filename, char ***result) {
     size_t i = 0;
     size_t nb_lines = 0;
     char tmpchar;

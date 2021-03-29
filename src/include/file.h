@@ -7,7 +7,7 @@
  * @retval          The number of system calls read or
  *                  -1 if an error occurred
  */
-size_t load_syscalls(const char *filename, char ***result);
+int load_syscalls(const char *filename, char ***result);
 
 /*
  * @brief Frees all system calls names previously allocated
