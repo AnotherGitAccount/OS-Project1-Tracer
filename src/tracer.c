@@ -129,7 +129,7 @@ int main(int argc, char *args[]) {
 
                 case SYSCALL: {
                     char **syscalls;
-                    int nb_syscalls = load_syscalls("resources/syscall.txt", &syscalls);
+                    int nb_syscalls = load_syscalls("syscall.txt", &syscalls);
                     if(nb_syscalls == -1) {
                         printf("An error occured while loading the list of system calls\n");
                         exit(-1);
