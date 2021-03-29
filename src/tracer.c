@@ -41,6 +41,7 @@ int main(int argc, char *args[]) {
 
             switch(ptargs->mode) {
                 case PROFILER: {
+                    bool first = true;
                     func_block* tree;
                     Stack* stack = create_stack();
                     unsigned int cnt = 0;
@@ -52,6 +53,16 @@ int main(int argc, char *args[]) {
                         long word1 = ptrace(PTRACE_PEEKDATA, pid, regs.eip + sizeof(long), NULL);
 
                         Operation op = type_of(word0, word1);
+
+                        if(first) {
+                            char name[100];
+                            name_of(name, ptargs->file, regs.eip);
+                            
+                            tree = create_block(name);
+                            push(stack, tree, -1);
+
+                            first = false;
+                        }
                         
                         if(ret && !is_empty(stack) && regs.eip == stack->head->ret_address) {
                             // It is the return of our function
@@ -74,23 +85,19 @@ int main(int argc, char *args[]) {
                                 name_of(name, ptargs->file, ret_address + offset);
 
                                 if(strcmp(name, "*unknown*") != 0) {
-                                    if(is_empty(stack)) {
-                                        // First call
-                                        tree = create_block(name);
-                                        push(stack, tree, ret_address);
+
+                                    add_instr(stack->head->block, cnt);
+                                    if(strcmp(name, stack->head->block->name) == 0) {
+                                        // Recursive call
+                                        add_recursive(stack->head->block, 1);
+                                        push(stack, stack->head->block, ret_address);
                                     } else {
-                                        add_instr(stack->head->block, cnt);
-                                        if(strcmp(name, stack->head->block->name) == 0) {
-                                            // Recursive call
-                                            add_recursive(stack->head->block, 1);
-                                            push(stack, stack->head->block, ret_address);
-                                        } else {
-                                            // Non recursive call
-                                            func_block *block = create_block(name);
-                                            add_child(stack->head->block, block);
-                                            push(stack, block, ret_address);
-                                        }
+                                        // Non recursive call
+                                        func_block *block = create_block(name);
+                                        add_child(stack->head->block, block);
+                                        push(stack, block, ret_address);
                                     }
+                                    
                                     cnt = 0;
                                 }
                                 break;

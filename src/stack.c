@@ -3,7 +3,6 @@
 
 Stack* create_stack(void) {
     Stack* stack = malloc(sizeof(Stack));
-    stack->size = 0;
     stack->head = NULL;
     return stack;
 }
@@ -18,7 +17,6 @@ void push(Stack* stack, func_block* block, long ret_address) {
     node->ret_address = ret_address;
     node->next  = stack->head;
     stack->head = node;
-    ++(stack->size);
 }
 
 func_block* pop(Stack* stack) {
@@ -26,7 +24,6 @@ func_block* pop(Stack* stack) {
     Node* node = stack->head->next;
     free(stack->head);
     stack->head = node;
-    --(stack->size);
     return block;
 }
 
