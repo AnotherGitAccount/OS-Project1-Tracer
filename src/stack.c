@@ -4,6 +4,7 @@
 Stack* create_stack(void) {
     Stack* stack = malloc(sizeof(Stack));
     stack->size = 0;
+    stack->head = NULL;
     return stack;
 }
 
