@@ -3,10 +3,10 @@ CFLAGS=-g --pedantic -Wall -Wextra -Wmissing-prototypes -std=c99
 PROGRAM=tracer 
 # DO NOT MODIFY CC, CFLAGS and PROGRAM
 # COMPLETE BELOW
-SRC_DIR	:= .
+SRC_DIR := .
 INC_DIR := ./include
-OBJ_DIR	:= ./obj
-BIN_DIR	:= .
+OBJ_DIR := ./obj
+BIN_DIR := .
 
 EXE := $(BIN_DIR)/$(PROGRAM)
 SRC := $(wildcard $(SRC_DIR)/*.c)
